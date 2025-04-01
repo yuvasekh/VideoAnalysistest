@@ -46,13 +46,12 @@ app.post("/upload", upload.single("video"), async (req, res) => {
 
 
 app.post("/query", async (req, res) => {
-    const { question, videoURL } = req.body;
-    if (!question && !videoURL) {
+    const { question, base64Data } = req.body;
+    if (!question && !base64Data) {
         return res.status(400).json({ error: "No question provided" });
     }
-    var response = await analysis(question, videoURL)
+    var response = await analysis(question, base64Data)
     // Placeholder AI processing logic
-    console.log(response,"yuva")
     const answer = ` "${response}"`;
     res.json({ answer });
 });
@@ -62,7 +61,7 @@ app.listen(port, () => {
 });
 //AIzaSyC_yBhja8pLtvI887aE2z32JjA35w4J2Vo
 
-async function analysis(question, url) {
+async function analysis(question, base64Data) {
     return new Promise((resolve, reject) => {
         let data = JSON.stringify({
             "contents": [
@@ -70,12 +69,11 @@ async function analysis(question, url) {
                     "role": "user",
                     "parts": [
                         {
-                            
-                                "fileData": {
-                                  "fileUri": url,
-                                  "mimeType": "video/*"
-                                }
-                              
+                            "inlineData": {
+                                "mimeType": "video/mp4",
+                                "data": base64Data
+
+                            }
                         },
                         {
                             "text": question
@@ -87,7 +85,7 @@ async function analysis(question, url) {
                 "role": "user",
                 "parts": [
                     {
-                        "text": "You are an Youtube video summariser you need to summarize the video based on user query"
+                        "text": "You are Video assistant to answrr the user queries If it's a greeting greet him if it is related to video answer based on the given video"
                     }
                 ]
             },
