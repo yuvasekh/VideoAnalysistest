@@ -1,0 +1,495 @@
+const express = require("express");
+const cors = require("cors");
+const fs = require("fs");
+const path = require("path");
+var bodyParser = require('body-parser')
+const axios = require('axios');
+const { data } = require("autoprefixer");
+const { rejects } = require("assert");
+const app = express();
+const port = 5000;
+app.use(cors());
+app.use(express.json({ limit: "150mb" })); // Increase limit for large files
+app.use(express.static("uploads"));
+app.use(bodyParser.urlencoded({ extended: false }))
+// parse application/json
+app.use(bodyParser.json())
+// Upload Base64 Video  
+app.get('/hello', (req, res) => {
+    res.send("hello")
+})
+
+app.post('/addinstance', (req, res) => {
+    const { instanceUrl, accesskey } = req.body;
+
+    if (!instanceUrl || !accesskey) {
+        return res.status(400).json({ message: "instanceUrl and accesskey are required" });
+    }
+
+    const newInstance = {
+        instanceUrl,
+        accesskey
+    };
+
+    const filePath = path.join(__dirname, 'instances.json');
+
+    // Read the existing file, or create a new one
+    fs.readFile(filePath, 'utf8', (err, data) => {
+        let instances = [];
+        if (!err && data) {
+            instances = JSON.parse(data);
+        }
+
+        instances.push(newInstance);
+
+        fs.writeFile(filePath, JSON.stringify(instances, null, 2), (err) => {
+            if (err) {
+                console.error('Error writing file', err);
+                return res.status(500).json({ message: 'Internal Server Error' });
+            }
+            res.json({ message: 'Instance added successfully' });
+        });
+    });
+});
+
+app.get('/listobjects', (req, res) => {
+    return new Promise(async (resolve, reject) => {
+
+        let Instance = await readInstance()
+        console.log(Instance, "yuva")
+        let config = {
+            method: 'get',
+            maxBodyLength: Infinity,
+            url: 'https://demo-wigmore.gainsightcloud.com/v1/api/describe/listobjects',
+            headers: {
+                'accesskey': 'a6b3e564-2f86-4b0c-aa1d-137203b7640c',
+                'Content-Type': 'application/json'
+            }
+        };
+
+        axios.request(config)
+            .then((response) => {
+                // console.log(JSON.stringify(response.data));
+                res.send(response.data)
+            })
+            .catch((error) => {
+                console.log(error);
+                res.send(error)
+            });
+
+
+    })
+}
+)
+app.get('/instances', (req, res) => {
+    const filePath = path.join(__dirname, 'instances.json');
+
+    fs.readFile(filePath, 'utf8', (err, data) => {
+        if (err) {
+            console.error('Error reading file', err);
+            return res.status(500).json({ message: 'Internal Server Error' });
+        }
+
+        let instances = [];
+        if (data) {
+            try {
+                instances = JSON.parse(data);
+            } catch (parseErr) {
+                console.error('Error parsing JSON', parseErr);
+                return res.status(500).json({ message: 'Error parsing instances.json' });
+            }
+        }
+
+        res.json(instances);
+    });
+});
+
+// app.get('/listfields', (req, res) => {
+//     return new Promise((resolve, reject) => {
+//         let config = {
+//             method: 'get',
+//             maxBodyLength: Infinity,
+//             url: 'https://demo-wigmore.gainsightcloud.com/v1/api/describe/listobjects',
+//             headers: {
+//                 'accesskey': 'a6b3e564-2f86-4b0c-aa1d-137203b7640c',
+//                 'Content-Type': 'application/json'
+//             }
+//         };
+
+//         axios.request(config)
+//             .then((response) => {
+//                 console.log(JSON.stringify(response.data));
+//                 resolve(response.data)
+//             })
+//             .catch((error) => {
+//                 console.log(error);
+//                 reject(error)
+//             });
+
+
+//     })
+// }
+// )
+
+app.get('/listfields', (req, res) => {
+    let fieldDBName = req.query.objectName
+    return new Promise((resolve, reject) => {
+
+        let config = {
+            method: 'get',
+            maxBodyLength: Infinity,
+            url: `https://demo-wigmore.gainsightcloud.com/v1/meta/services/objects/${fieldDBName}/describe?ic=true&idd=true`,
+            headers: {
+                'AccessKey': 'a6b3e564-2f86-4b0c-aa1d-137203b7640c',
+                'Content-Type': 'application/json'
+            }
+        };
+
+        axios.request(config)
+            .then((response) => {
+                console.log(JSON.stringify(response.data));
+                res.send(response.data)
+            })
+            .catch((error) => {
+                res.send(error)
+            });
+
+
+    })
+}
+)
+async function fetchFields(objectName) {
+    let fieldDBName = objectName
+    return new Promise((resolve, reject) => {
+
+        let config = {
+            method: 'get',
+            maxBodyLength: Infinity,
+            url: `https://demo-wigmore.gainsightcloud.com/v1/meta/services/objects/${fieldDBName}/describe?ic=true&idd=true`,
+            headers: {
+                'AccessKey': 'a6b3e564-2f86-4b0c-aa1d-137203b7640c',
+                'Content-Type': 'application/json'
+            }
+        };
+
+        axios.request(config)
+            .then((response) => {
+                console.log(JSON.stringify(response.data));
+                resolve(response.data)
+            })
+            .catch((error) => {
+                reject(error)
+            });
+
+
+    })
+}
+app.put('/addfield', async (req, res) => {
+    return new Promise(async (resolve, reject) => {
+        let objectName = req.body.objectName
+        let ColumnName = req.body.ColumnName
+        let dataType = req.body.dataType
+        let data = JSON.stringify({
+            "objectDetails": {
+                "label": objectName,
+                "name": objectName,
+                "dataStore": "HAPOSTGRES",
+                "description": "",
+                "group": "Custom",
+                "originalName": objectName,
+                "originalLabel": objectName,
+                "originalDescription": "",
+                "originalDataStore": "HAPOSTGRES",
+                "richTextMaxSize": 150000
+            },
+            "createdColumns": [
+                {
+                    "name": ColumnName,
+                    "label": ColumnName,
+                    "defaultValue": null,
+                    "description": null,
+                    "type": dataType,
+                    "group": "custom",
+                    "hidden": false,
+                    "required": false
+                }
+            ],
+            "updatedColumns": [],
+            "deletedColumns": []
+        });
+
+        let token = await readToken()
+        console.log(token, "yuva")
+        let config = {
+            method: 'put',
+            maxBodyLength: Infinity,
+            url: 'https://demo-wigmore.gainsightcloud.com/v1/meta/v10/gdm/objects',
+            headers: {
+                'Cookie': `${token}`,
+                'Content-Type': 'application/json'
+            },
+            data: data
+        };
+
+        axios.request(config)
+            .then((response) => {
+                console.log(JSON.stringify(response.data));
+                res.send(response.data)
+                return response.data
+            })
+            .catch((error) => {
+                console.log(error);
+                res.send(error)
+            });
+
+
+
+    })
+})
+app.post('/addobject', async (req, res) => {
+    console.log(req.body)
+    let displayName = req.body.displayName
+    let fieldName = req.body.fieldName
+    return new Promise(async (resolve, reject) => {
+        let data = JSON.stringify({
+            "objectDetails": {
+                "label": displayName,
+                "name": fieldName,
+                "dataStore": "HAPOSTGRES",
+                "description": "",
+                "group": "Custom",
+                "originalName": fieldName,
+                "originalLabel": displayName,
+                "originalDescription": "",
+                "originalDataStore": "HAPOSTGRES",
+                "richTextMaxSize": 150000
+            }
+        });
+
+        let token = await readToken()
+        console.log(token, "yuva")
+        let config = {
+            method: 'post',
+            maxBodyLength: Infinity,
+            url: 'https://demo-wigmore.gainsightcloud.com/v1/meta/v10/gdm/objects',
+            headers: {
+                'Cookie': `${token}`,
+                'Content-Type': 'application/json'
+            },
+            data: data
+        };
+
+        axios.request(config)
+            .then((response) => {
+                console.log(JSON.stringify(response.data));
+                res.send(response.data)
+                return response.data
+            })
+            .catch((error) => {
+                console.log(error);
+                res.send(error)
+            });
+
+
+
+    })
+})
+app.post('/migrate',async(req,res)=>
+{
+    let targetUrl=req.body.targetUrl
+    let targetAcccesKey=req.body.targetAcccesKey
+    let targetObjectName=req.body.targetObjectName
+    let SourceObjectName=req.body.SourceObjectName
+try
+{
+    var fields=await fetchFields(SourceObjectName)
+let temp=[]
+    fields?.data[0]?.fields?.map((item,index)=>
+    {
+        temp.push({
+            "name": item.fieldName,
+            "label": item.label,
+            "defaultValue": item?.defaultValue ||null,
+            "description": item?.description ||null,
+            "type": item?.dataType,
+            "group": fields?.data[0]?.objectType,
+            "hidden": false,
+            "required": item?.meta?.dataType
+        })
+    })
+
+console.log(temp[0])
+var response=await addfield(targetUrl,targetAcccesKey,targetObjectName,temp)
+}
+catch(error)
+{
+    res.send(error)
+}
+})
+async function addfield(targetUrl,targetAcccesKey,objectName,temp) {
+    return new Promise(async (resolve, reject) => {
+        let data = JSON.stringify({
+            "objectDetails": {
+                "label": objectName,
+                "name": objectName,
+                "dataStore": "HAPOSTGRES",
+                "description": "",
+                "group": "Custom",
+                "originalName": objectName,
+                "originalLabel": objectName,
+                "originalDescription": "",
+                "originalDataStore": "HAPOSTGRES",
+                "richTextMaxSize": 150000
+            },
+            "createdColumns": ColumnNames,
+            "updatedColumns": [],
+            "deletedColumns": []
+        });
+
+        let token = await readToken()
+        console.log(token, "yuva")
+        let config = {
+            method: 'put',
+            maxBodyLength: Infinity,
+            url: `${targetUrl}/v1/meta/v10/gdm/objects`,
+            headers: {
+                'Cookie': `${token}`,
+                'Content-Type': 'application/json'
+            },
+            data: data
+        };
+
+        axios.request(config)
+            .then((response) => {
+                console.log(JSON.stringify(response.data));
+                res.send(response.data)
+                return response.data
+            })
+            .catch((error) => {
+                console.log(error);
+                res.send(error)
+            });
+
+
+
+    })
+}
+async function readToken() {
+    const filePath = path.join(__dirname, 'token.json');
+    return new Promise((resolve, reject) => {
+        fs.readFile(filePath, 'utf8', (err, data) => {
+            if (err) {
+                console.error('Error reading file', err);
+                return res.status(500).json({ message: 'Internal Server Error' });
+            }
+
+
+            if (data) {
+                try {
+                    let instances = JSON.parse(data);
+                    console.log(instances, "token")
+                    resolve(instances?.token)
+                } catch (parseErr) {
+                    console.error('Error parsing JSON', parseErr);
+                    reject(parseErr)
+                }
+            }
+
+
+        });
+
+    })
+
+
+}
+app.listen(port, () => {
+    console.log(`Server running on http://localhost:${port}`);
+});
+async function readInstance(params) {
+    const filePath = path.join(__dirname, 'instances.json');
+
+    fs.readFile(filePath, 'utf8', (err, data) => {
+        if (err) {
+            console.error('Error reading file', err);
+            return res.status(500).json({ message: 'Internal Server Error' });
+        }
+
+        let instances = [];
+        if (data) {
+            try {
+                instances = JSON.parse(data);
+            } catch (parseErr) {
+                console.error('Error parsing JSON', parseErr);
+                return res.status(500).json({ message: 'Error parsing instances.json' });
+            }
+        }
+
+        return instances
+    });
+
+
+}
+
+
+async function analysis(question, base64Data) {
+    return new Promise((resolve, reject) => {
+        let data = JSON.stringify({
+            "contents": [
+                {
+                    "role": "user",
+                    "parts": [
+                        {
+                            "inlineData": {
+                                "mimeType": "video/mp4",
+                                "data": base64Data
+
+                            }
+                        },
+                        {
+                            "text": question
+                        },
+                    ]
+                }
+            ],
+            "systemInstruction": {
+                "role": "user",
+                "parts": [
+                    {
+                        "text": "You are Video assistant to answrr the user queries If it's a greeting greet him if it is related to video answer based on the given video"
+                    }
+                ]
+            },
+            "generationConfig": {
+                "temperature": 1,
+                "topK": 40,
+                "topP": 0.95,
+                "maxOutputTokens": 8192,
+                "responseMimeType": "text/plain"
+            }
+        });
+        let config = {
+            method: 'post',
+            maxBodyLength: Infinity,
+            url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AIzaSyC_yBhja8pLtvI887aE2z32JjA35w4J2Vo',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            data: data
+        };
+
+        axios.request(config)
+            .then((response) => {
+                console.log(JSON.stringify(response.data));
+                resolve(response.data?.candidates[0]?.content.parts[0]?.text)
+            })
+            .catch((error) => {
+                console.log(error);
+                reject(error)
+            });
+    })
+
+
+
+
+
+}

@@ -23,43 +23,11 @@ app.use(bodyParser.urlencoded({ extended: false }))
 // parse application/json
 app.use(bodyParser.json())
 // Upload Base64 Video
-app.post("/upload", upload.single("video"), async (req, res) => {
-    try {
-        console.log(req.body, req.file)
-        const { base64Data, filename } = req.body;
-
-        if (!base64Data || !filename) {
-            return res.status(400).json({ error: "Invalid data" });
-        }
-
-        const filePath = `uploads/${Date.now()}_${filename}`;
-        const buffer = Buffer.from(base64Data, "base64");
-        // var response=await analysis(buffer)
-        fs.writeFileSync(filePath, buffer);
-        res.json({ message: "Video uploaded successfully", filename: base64Data });
-    } catch (error) {
-        console.error("Upload error:", error);
-        res.status(500).json({ error: "Internal Server Error" });
-    }
-});
-
-
-
-app.post("/query", async (req, res) => {
-    const { question, base64Data } = req.body;
-    if (!question && !base64Data) {
-        return res.status(400).json({ error: "No question provided" });
-    }
-    var response = await analysis(question, base64Data)
-    // Placeholder AI processing logic
-    const answer = ` "${response}"`;
-    res.json({ answer });
-});
 
 app.listen(port, () => {
     console.log(`Server running on http://localhost:${port}`);
 });
-//AIzaSyC_yBhja8pLtvI887aE2z32JjA35w4J2Vo
+
 
 async function analysis(question, base64Data) {
     return new Promise((resolve, reject) => {
