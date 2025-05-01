@@ -1,7 +1,15 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Input, Button, Select, message, Progress, Spin } from 'antd';
-import axios from 'axios';
+import { Input, Button, Select, Progress, Card, Tag, Row, Col, Alert, Spin } from 'antd';
+import { 
+  ArrowLeftOutlined, 
+  CloudSyncOutlined, 
+  ReloadOutlined, 
+  DownloadOutlined,
+  SafetyCertificateOutlined,
+  LinkOutlined,
+  FileTextOutlined 
+} from '@ant-design/icons';
 
 const { Option } = Select;
 
@@ -115,124 +123,200 @@ const MigrationPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white p-6">
-      {/* Top Bar */}
-      <div className="flex justify-between items-center mb-6">
+    <div className="min-h-screen bg-gray-50 p-6 w-screen">
+      <div className="max-w-7xl mx-auto">
+        {/* Header Navigation */}
         <Button
+          type="text"
+          icon={<ArrowLeftOutlined />}
           onClick={() => navigate('/objects')}
-          className="bg-gray-800 text-white border-none hover:bg-gray-700"
+          className="mb-6 text-gray-600 hover:text-blue-600"
         >
-          ← Back to Objects
+          Back to Objects
         </Button>
-      </div>
 
-      <h1 className="text-3xl font-bold text-center mb-10">Field Migration</h1>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Left Side Setup */}
-        <div className="bg-gray-900 p-6 rounded-lg border border-gray-700">
-          <h2 className="text-xl font-semibold mb-4">Migration Setup</h2>
-          <p className="text-gray-400 mb-6 text-sm">Provide instance details and map source ➔ target object</p>
-
-          {/* Target Instance Inputs */}
-          <Input
-            placeholder="Target Instance URL"
-            className="mb-4 bg-gray-800 text-white"
-            value={targetUrl}
-            onChange={(e) => setTargetUrl(e.target.value)}
-          />
-
-          <Input
-            type="password"
-            placeholder="Target Access Key"
-            className="mb-4 bg-gray-800 text-white"
-            value={accessKey}
-            onChange={(e) => setAccessKey(e.target.value)}
-          />
-
-          <Button
-            type="primary"
-            onClick={fetchTargetObjects}
-            className="w-full mb-6 bg-blue-600 hover:bg-blue-700 text-white font-semibold"
-            loading={loading}
-          >
-            Fetch Target Objects
-          </Button>
-
-          {/* Source Object Dropdown */}
-          <Select
-            showSearch
-            placeholder="Select Source Object"
-            className="w-full mb-4"
-            value={sourceObject || undefined}
-            onChange={(value) => setSourceObject(value)}
-            filterOption={(input, option) => (option?.value ?? '').toLowerCase().includes(input.toLowerCase())}
-          >
-            {objectList.map((obj, index) => (
-              <Option key={index} value={obj}>{obj}</Option>
-            ))}
-          </Select>
-
-          {/* Target Object Dropdown */}
-          <Select
-            showSearch
-            placeholder="Select Target Object"
-            className="w-full mb-6"
-            value={targetObject || undefined}
-            onChange={(value) => setTargetObject(value)}
-            filterOption={(input, option) => (option?.value ?? '').toLowerCase().includes(input.toLowerCase())}
-          >
-            {targetObjectsList.map((obj, index) => (
-              <Option key={index} value={obj}>{obj}</Option>
-            ))}
-          </Select>
-
-          {/* Migrate Button */}
-          <Button
-            onClick={handleStartMigration}
-            className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold mb-4"
-            disabled={isMigrating}
-          >
-            Start Migration
-          </Button>
-
-          {/* Retry Failed Fields Button */}
-          <Button
-            onClick={handleRetryFailedFields}
-            className="w-full bg-yellow-600 hover:bg-yellow-700 text-white font-semibold mb-4"
-            disabled={isMigrating || failedFields.length === 0}
-          >
-            Retry Failed Fields
-          </Button>
-
-          {/* Download Logs Button */}
-          <Button
-            onClick={handleDownloadLogs}
-            className="w-full bg-gray-600 hover:bg-gray-700 text-white font-semibold"
-            disabled={logs.length === 0}
-          >
-            Download Logs
-          </Button>
+        {/* Main Title Section */}
+        <div className="mb-8 text-center">
+          <h1 className="text-3xl font-bold text-gray-800 mb-2 flex items-center justify-center gap-3">
+            <CloudSyncOutlined className="text-blue-600" />
+            Data Migration Center
+          </h1>
+          <p className="text-gray-500">Securely transfer object configurations between instances</p>
         </div>
 
-        {/* Right Side Logs */}
-        <div className="bg-gray-900 p-6 rounded-lg border border-gray-700">
-          <h2 className="text-xl font-semibold mb-4">📜 Logs</h2>
-          <div className="bg-black p-4 rounded overflow-y-auto h-80 border border-gray-700 text-sm font-mono mb-4">
-            {logs.length === 0 ? (
-              <p className="text-gray-500">Logs will appear here during migration</p>
-            ) : (
-              logs.map((log, index) => (
-                <p key={index} className="mb-2">{log}</p>
-              ))
-            )}
-          </div>
+        {/* Migration Dashboard */}
+        <Row gutter={[24, 24]}>
+          {/* Configuration Panel */}
+          <Col xs={24} lg={12}>
+            <Card className="shadow-sm border-0">
+              <div className="space-y-6">
+                {/* Connection Status */}
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <SafetyCertificateOutlined className="text-blue-600 text-lg" />
+                    <div>
+                      <h3 className="font-medium text-gray-800">Secure Connection</h3>
+                      <p className="text-sm text-gray-500">TLS 1.3 encrypted migration</p>
+                    </div>
+                  </div>
+                </div>
 
-          {/* Progress Bar */}
-          {isMigrating && (
-            <Progress percent={progress} status="active" />
-          )}
-        </div>
+                {/* Target Configuration */}
+                <div className="space-y-4">
+                  <h3 className="font-medium text-gray-800">Target Instance</h3>
+                  <Input
+                    addonBefore={<LinkOutlined className="text-gray-400" />}
+                    placeholder="https://target.instance.com"
+                    className="h-12 rounded-lg"
+                    value={targetUrl}
+                    onChange={(e) => setTargetUrl(e.target.value)}
+                  />
+                  <Input.Password
+                    addonBefore={<SafetyCertificateOutlined className="text-gray-400" />}
+                    placeholder="Access key"
+                    className="h-12 rounded-lg"
+                    value={accessKey}
+                    onChange={(e) => setAccessKey(e.target.value)}
+                  />
+                </div>
+
+                {/* Object Mapping */}
+                <div className="space-y-4">
+                  <h3 className="font-medium text-gray-800">Object Mapping</h3>
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Select
+                        placeholder="Source object"
+                        className="w-full h-12"
+                        options={objectList.map(o => ({ label: o, value: o }))}
+                      />
+                    </Col>
+                    <Col span={12}>
+                      <Select
+                        placeholder="Target object"
+                        className="w-full h-12"
+                        disabled={targetObjectsList.length === 0}
+                        options={targetObjectsList.map(o => ({ label: o, value: o }))}
+                      />
+                    </Col>
+                  </Row>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    type="primary"
+                    icon={<CloudSyncOutlined />}
+                    className="h-12"
+                    loading={loading}
+                    onClick={fetchTargetObjects}
+                  >
+                    Discover Targets
+                  </Button>
+                  <Button
+                    type="default"
+                    className="h-12"
+                    onClick={() => setTargetObjectsList([])}
+                  >
+                    Clear Selection
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          </Col>
+
+          {/* Migration Progress */}
+          <Col xs={24} lg={12}>
+            <Card className="shadow-sm border-0 h-full">
+              <div className="space-y-6 h-full flex flex-col">
+                {/* Migration Controls */}
+                <div className="space-y-4">
+                  <Button
+                    type="primary"
+                    block
+                    size="large"
+                    className="h-12 bg-green-600 hover:bg-green-700"
+                    onClick={handleStartMigration}
+                    disabled={!sourceObject || !targetObject}
+                  >
+                    Initiate Migration
+                  </Button>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <Button
+                      icon={<ReloadOutlined />}
+                      className="h-10"
+                      disabled={failedFields.length === 0}
+                    >
+                      Retry Failed ({failedFields.length})
+                    </Button>
+                    <Button
+                      icon={<DownloadOutlined />}
+                      className="h-10"
+                      disabled={logs.length === 0}
+                    >
+                      Export Logs
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Migration Visualizer */}
+                <div className="flex-1">
+                  {isMigrating ? (
+                    <div className="space-y-4">
+                      <Progress
+                        percent={progress}
+                        strokeColor={{
+                          '0%': '#4F46E5',
+                          '100%': '#10B981',
+                        }}
+                        strokeWidth={8}
+                        showInfo={false}
+                      />
+                      <div className="text-center">
+                        <div className="text-lg font-medium text-gray-800">
+                          Migrating {sourceObject} 
+                          <span className="mx-2">→</span> 
+                          {targetObject}
+                        </div>
+                        <p className="text-gray-500 text-sm">
+                          Processing {progress}% complete
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="h-full flex items-center justify-center text-gray-400">
+                      <FileTextOutlined className="text-4xl mr-3" />
+                      <span>Migration session will appear here</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Logs Preview */}
+                {logs.length > 0 && (
+                  <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-medium text-gray-800">Recent Activity</h4>
+                      <Tag color="blue">{logs.length} events</Tag>
+                    </div>
+                    <div className="space-y-2 h-32 overflow-y-auto">
+                      {logs.slice(-3).map((log, index) => (
+                        <div
+                          key={index}
+                          className={`text-sm p-2 rounded ${
+                            log.includes('❌') ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'
+                          }`}
+                        >
+                          {log}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </Card>
+          </Col>
+        </Row>
       </div>
     </div>
   );

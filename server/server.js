@@ -294,39 +294,35 @@ app.post('/addobject', async (req, res) => {
 
     })
 })
-app.post('/migrate',async(req,res)=>
-{
-    let targetUrl=req.body.targetUrl
-    let targetAcccesKey=req.body.targetAcccesKey
-    let targetObjectName=req.body.targetObjectName
-    let SourceObjectName=req.body.SourceObjectName
-try
-{
-    var fields=await fetchFields(SourceObjectName)
-let temp=[]
-    fields?.data[0]?.fields?.map((item,index)=>
-    {
-        temp.push({
-            "name": item.fieldName,
-            "label": item.label,
-            "defaultValue": item?.defaultValue ||null,
-            "description": item?.description ||null,
-            "type": item?.dataType,
-            "group": fields?.data[0]?.objectType,
-            "hidden": false,
-            "required": item?.meta?.dataType
+app.post('/migrate', async (req, res) => {
+    let targetUrl = req.body.targetUrl
+    let targetAcccesKey = req.body.targetAcccesKey
+    let targetObjectName = req.body.targetObjectName
+    let SourceObjectName = req.body.SourceObjectName
+    try {
+        var fields = await fetchFields(SourceObjectName)
+        let temp = []
+        fields?.data[0]?.fields?.map((item, index) => {
+            temp.push({
+                "name": item.fieldName,
+                "label": item.label,
+                "defaultValue": item?.defaultValue || null,
+                "description": item?.description || null,
+                "type": item?.dataType,
+                "group": fields?.data[0]?.objectType,
+                "hidden": false,
+                "required": item?.meta?.dataType
+            })
         })
-    })
 
-console.log(temp[0])
-var response=await addfield(targetUrl,targetAcccesKey,targetObjectName,temp)
-}
-catch(error)
-{
-    res.send(error)
-}
+        console.log(temp[0])
+        var response = await addfield(targetUrl, targetAcccesKey, targetObjectName, temp)
+    }
+    catch (error) {
+        res.send(error)
+    }
 })
-async function addfield(targetUrl,targetAcccesKey,objectName,temp) {
+async function addfield(targetUrl, targetAcccesKey, objectName, temp) {
     return new Promise(async (resolve, reject) => {
         let data = JSON.stringify({
             "objectDetails": {
@@ -429,8 +425,6 @@ async function readInstance(params) {
 
 
 }
-
-
 async function analysis(question, base64Data) {
     return new Promise((resolve, reject) => {
         let data = JSON.stringify({
@@ -491,5 +485,79 @@ async function analysis(question, base64Data) {
 
 
 
+
+}
+async function functioncalling(params) {
+
+    let data = JSON.stringify({
+        "contents": [
+            {
+                "role": "user",
+                "parts": [
+                    {
+                        "text": "Schedule a meeting with Bob and Alice for 03/27/2025 at 10:00 AM about the Q3 planning."
+                    }
+                ]
+            }
+        ],
+        "tools": [
+            {
+                "functionDeclarations": [
+                    {
+                        "name": "schedule_meeting",
+                        "description": "Schedules a meeting with specified attendees at a given time and date.",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "attendees": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    },
+                                    "description": "List of people attending the meeting."
+                                },
+                                "date": {
+                                    "type": "string",
+                                    "description": "Date of the meeting (e.g., 2024-07-29)"
+                                },
+                                "time": {
+                                    "type": "string",
+                                    "description": "Time of the meeting (e.g., 15:00)"
+                                },
+                                "topic": {
+                                    "type": "string",
+                                    "description": "The subject or topic of the meeting."
+                                }
+                            },
+                            "required": [
+                                "attendees",
+                                "date",
+                                "time",
+                                "topic"
+                            ]
+                        }
+                    }
+                ]
+            }
+        ]
+    });
+
+    let config = {
+        method: 'post',
+        maxBodyLength: Infinity,
+        url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AIzaSyBYR6gyhmJ5nqmEGUdit8Z3X1TXtQZFg6g',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        data: data
+    };
+
+    axios.request(config)
+        .then((response) => {
+            console.log(JSON.stringify(response.data));
+        })
+        .catch((error) => {
+            console.log(error);
+        });
 
 }

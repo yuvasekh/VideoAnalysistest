@@ -20,6 +20,7 @@
     "lucide-react": "^0.479.0",
     "postcss": "^8.5.3",
     "react": "^19.0.0",
+    "react-chatbot-kit": "^2.2.2",
     "react-dom": "^19.0.0",
     "react-router-dom": "^6.30.0",
     "react-toastify": "^11.0.5",

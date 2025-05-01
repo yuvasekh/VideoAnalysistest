@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { Table, Input, Select, Button, Spin } from 'antd';
-import { ArrowLeftOutlined, PlusOutlined } from '@ant-design/icons';
+import { Table, Input, Select, Button, Spin, Tag } from 'antd';
+import { ArrowLeftOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import CreateFieldModal from './CreateFieldModal';
 import axios from 'axios';
 import { fetchFieldNames } from './api/api';
@@ -56,21 +56,23 @@ console.log(mappedFields,"mappedFields")
   // Define AntD Table Columns
   const columns = [
     {
-      title: 'Name',
+      title: 'Field Name',
       dataIndex: 'name',
       key: 'name',
-      render: text => <span className="text-blue-400">{text}</span>,
+      render: text => <span className="text-gray-800 font-medium">{text}</span>,
       sorter: (a, b) => a.name.localeCompare(b.name),
     },
     {
       title: 'Description',
       dataIndex: 'description',
       key: 'description',
+      render: text => <span className="text-gray-500">{text}</span>,
     },
     {
       title: 'Data Type',
       dataIndex: 'type',
       key: 'type',
+      render: text => <Tag color="geekblue" className="rounded-full">{text}</Tag>,
       sorter: (a, b) => a.type.localeCompare(b.type),
     },
     {
@@ -84,92 +86,123 @@ console.log(mappedFields,"mappedFields")
       ],
       onFilter: (value, record) => record.fieldType === value,
       render: type => (
-        <span
-          className={`px-2 py-1 rounded text-xs ${
-            type === 'SYSTEM' ? 'bg-yellow-500' :
-            type === 'CUSTOM' ? 'bg-green-500' :
-            'bg-gray-500'
-          } text-white`}
+        <Tag
+          color={
+            type === 'SYSTEM' ? 'volcano' :
+            type === 'CUSTOM' ? 'green' : 'default'
+          }
+          className="rounded-full"
         >
           {type}
-        </span>
+        </Tag>
       ),
     },
     {
       title: 'Mapping',
       dataIndex: 'mapping',
       key: 'mapping',
+      render: text => <span className="text-gray-500">{text}</span>,
     },
     {
       title: 'Lookup',
       dataIndex: 'lookup',
       key: 'lookup',
+      render: text => text === 'Has Lookup' ? (
+        <Tag color="cyan" className="rounded-full">Has Lookup</Tag>
+      ) : (
+        <span className="text-gray-400">--</span>
+      ),
     },
   ];
 
   return (
-    <div className="min-h-screen w-screen bg-black text-white p-6">
-      {/* Top Navigation */}
-      <div className="flex justify-between items-center mb-6">
-        <Button
-          icon={<ArrowLeftOutlined />}
-          onClick={() => navigate('/objects')}
-          className="bg-gray-800 hover:bg-gray-700 text-white border-none"
-        >
-          Back to Objects
-        </Button>
-        <Button
-          icon={<PlusOutlined />}
-          onClick={() => setShowModal(true)}
-          className="bg-blue-600 hover:bg-blue-700 text-white font-semibold"
-        >
-          Create Field
-        </Button>
-      </div>
+    <div className="min-h-screen bg-gray-50 p-6 w-screen">
+      <div className="max-w-7xl mx-auto">
+        {/* Header Section */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+          <Button
+            icon={<ArrowLeftOutlined />}
+            onClick={() => navigate('/objects')}
+            className="flex items-center text-gray-600 hover:text-gray-800 border-gray-300 h-10"
+          >
+            Back to Objects
+          </Button>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => setShowModal(true)}
+            className="h-10 bg-blue-600 hover:bg-blue-700 border-none"
+          >
+            Create Field
+          </Button>
+        </div>
 
-      {/* Page Title */}
-      <h1 className="text-3xl font-bold mb-10 text-center">{objectName} Fields</h1>
+        {/* Title Section */}
+        <div className="bg-white rounded-lg p-6 mb-6 shadow-sm border border-gray-200">
+          <h1 className="text-2xl font-semibold text-gray-900">
+            {objectName} Field Management
+          </h1>
+          <p className="text-gray-500 mt-2">
+            Manage and configure fields for your {objectName} object
+          </p>
+        </div>
 
-      {/* Search and Filter */}
-      <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-        <Input
-          placeholder="Search Field Name"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full md:w-1/3"
-        />
-
-        <Select
-          placeholder="Filter Field Type"
-          allowClear
-          value={fieldTypeFilter || undefined}
-          onChange={(value) => setFieldTypeFilter(value)}
-          className="w-full md:w-1/4"
-        >
-          <Option value="STANDARD">STANDARD</Option>
-          <Option value="SYSTEM">SYSTEM</Option>
-          <Option value="CUSTOM">CUSTOM</Option>
-        </Select>
-      </div>
-
-      {/* Table */}
-      <div className="bg-gray-900 rounded-lg p-4 overflow-x-auto">
-        {loading ? (
-          <div className="flex justify-center items-center py-20">
-            <Spin size="large" />
+        {/* Filter Section */}
+        <div className="bg-white rounded-lg p-6 mb-6 shadow-sm border border-gray-200">
+          <div className="flex flex-col md:flex-row gap-4">
+            <Input
+              placeholder="Search field name..."
+              prefix={<SearchOutlined className="text-gray-400" />}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="h-10"
+            />
+            
+            <Select
+              placeholder="Filter by field type"
+              allowClear
+              value={fieldTypeFilter || undefined}
+              onChange={(value) => setFieldTypeFilter(value)}
+              className="min-w-[200px] h-10"
+            >
+              <Option value="STANDARD">Standard</Option>
+              <Option value="SYSTEM">System</Option>
+              <Option value="CUSTOM">Custom</Option>
+            </Select>
           </div>
-        ) : (
-          <Table
-            columns={columns}
-            dataSource={filteredFields}
-            pagination={{ pageSize: 10 }}
-            className="bg-gray-900 text-white"
+        </div>
+
+        {/* Table Section */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          {loading ? (
+            <div className="flex justify-center items-center py-16">
+              <Spin size="large" />
+            </div>
+          ) : (
+            <Table
+              columns={columns}
+              dataSource={filteredFields}
+              pagination={{ 
+                pageSize: 10, 
+                showSizeChanger: false,
+                className: 'px-6 py-4'
+              }}
+              className="ant-table-striped"
+              rowClassName={(record, index) => 
+                index % 2 === 0 ? 'bg-gray-50' : ''
+              }
+            />
+          )}
+        </div>
+
+        {/* Modal */}
+        {showModal && (
+          <CreateFieldModal 
+            onClose={() => setShowModal(false)} 
+            objectName={objectName} 
           />
         )}
       </div>
-
-      {/* Modal */}
-      {showModal && <CreateFieldModal onClose={() => setShowModal(false)} objectName={objectName} />}
     </div>
   );
 };
