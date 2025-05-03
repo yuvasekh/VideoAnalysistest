@@ -34,10 +34,10 @@ export async function fetchFieldNames(objectName) {
       throw error; // Rethrow to handle it in the caller
     }
   }
-  export async function createField( fieldName, displayName ) {
+  export async function createField( fieldName, displayName,objectName ) {
     try {
       const response = await axios.put('http://localhost:5000/addfield', {
-        fieldName, displayName 
+        fieldName, displayName ,objectName
       });
   
       // You can return whatever you get from backend
@@ -51,6 +51,32 @@ export async function fetchFieldNames(objectName) {
     try {
       const response = await axios.post('http://localhost:5000/addobject', {
         fieldName, displayName
+      });
+  
+      // You can return whatever you get from backend
+      return response.data; 
+    } catch (error) {
+      console.error('Error adding instance:', error);
+      throw error; // Rethrow to handle it in the caller
+    }
+  }
+  export async function createMigration(sourceObject ,targetObject ,targetUrl ,accessKey ) {
+    try {
+      const response = await axios.post('http://localhost:5000/migrate', {
+        sourceObject ,targetObject ,targetUrl ,accessKey
+      });
+  
+      // You can return whatever you get from backend
+      return response.data; 
+    } catch (error) {
+      console.error('Error adding instance:', error);
+      throw error; // Rethrow to handle it in the caller
+    }
+  }
+  export async function message(message,messages) {
+    try {
+      const response = await axios.post('http://localhost:5000/message', {
+        message,messages
       });
   
       // You can return whatever you get from backend

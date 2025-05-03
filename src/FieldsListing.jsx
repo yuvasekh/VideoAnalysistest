@@ -10,6 +10,7 @@ const { Option } = Select;
 
 const FieldsListing = () => {
   const { objectName } = useParams();
+  console.log(objectName)
   const navigate = useNavigate();
   const [showModal, setShowModal] = useState(false);
   const [fields, setFields] = useState([]);

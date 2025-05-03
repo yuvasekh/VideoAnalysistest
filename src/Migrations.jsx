@@ -1,15 +1,16 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Input, Button, Select, Progress, Card, Tag, Row, Col, Alert, Spin } from 'antd';
-import { 
-  ArrowLeftOutlined, 
-  CloudSyncOutlined, 
-  ReloadOutlined, 
+import { Input, Button, Select, Progress, Card, Tag, Row, Col, Alert, Spin, message } from 'antd';
+import {
+  ArrowLeftOutlined,
+  CloudSyncOutlined,
+  ReloadOutlined,
   DownloadOutlined,
   SafetyCertificateOutlined,
   LinkOutlined,
-  FileTextOutlined 
+  FileTextOutlined
 } from '@ant-design/icons';
+import { createMigration, fetchObjects } from './api/api';
 
 const { Option } = Select;
 
@@ -41,12 +42,10 @@ const MigrationPage = () => {
     setLoading(true);
     try {
       // Example API request — replace with your actual backend endpoint
-      const response = await axios.post(`${targetUrl}/api/objects`, {
-        accessKey: accessKey,
-      });
-
-      const data = response.data; // assuming it returns an array of object names
-      setTargetObjectsList(data || []);
+      const response = await fetchObjects();
+      const temp = response?.data?.[0]?.objectList?.map(item => item.objectName) || [];
+      console.log(temp)
+      setTargetObjectsList(temp);
       message.success('Target objects fetched successfully');
     } catch (error) {
       console.error('Error fetching target objects:', error);
@@ -84,7 +83,7 @@ const MigrationPage = () => {
     setIsMigrating(false);
   };
 
-  const handleStartMigration = () => {
+  const handleStartMigration = async () => {
     if (!sourceObject || !targetObject || !targetUrl || !accessKey) {
       message.error('Please fill all fields!');
       return;
@@ -100,28 +99,15 @@ const MigrationPage = () => {
       'Score',
       'GS Modified Date',  // Let's assume this will fail (example of error)
     ];
+    try {
+     var res= await createMigration(sourceObject, targetObject, targetUrl, accessKey)
+     console.log(res,"yuva")
+    }
+    catch (err) {
 
-    simulateMigration(fieldsToMigrate);
-  };
-
-  const handleRetryFailedFields = () => {
-    if (failedFields.length === 0) {
-      message.info('No failed fields to retry.');
-      return;
     }
 
-    simulateMigration(failedFields);
   };
-
-  const handleDownloadLogs = () => {
-    const element = document.createElement("a");
-    const file = new Blob([logs.join('\n')], { type: 'text/plain' });
-    element.href = URL.createObjectURL(file);
-    element.download = `migration_logs_${Date.now()}.txt`;
-    document.body.appendChild(element);
-    element.click();
-  };
-
   return (
     <div className="min-h-screen bg-gray-50 p-6 w-screen">
       <div className="max-w-7xl mx-auto">
@@ -186,18 +172,36 @@ const MigrationPage = () => {
                   <Row gutter={16}>
                     <Col span={12}>
                       <Select
-                        placeholder="Source object"
+                        placeholder="Target object"
+                        onChange={(value) => setSourceObject(value)}
                         className="w-full h-12"
-                        options={objectList.map(o => ({ label: o, value: o }))}
+                        isDisabled={targetObjectsList.length === 0}
+                        options={targetObjectsList.map(name => ({
+                          label: name,  // Format names to be more readable
+                          value: name
+                        }))}
+                        showSearch  // Add this line to enable search functionality
                       />
                     </Col>
                     <Col span={12}>
+                      {console.log(
+                        targetObjectsList.map(name => ({
+                          label: name,  // Format names to be more readable
+                          value: name
+                        }))
+                      )}
                       <Select
                         placeholder="Target object"
                         className="w-full h-12"
-                        disabled={targetObjectsList.length === 0}
-                        options={targetObjectsList.map(o => ({ label: o, value: o }))}
+                        onChange={(value) => setTargetObject(value)}
+                        isDisabled={targetObjectsList.length === 0}
+                        options={targetObjectsList.map(name => ({
+                          label: name,  // Format names to be more readable
+                          value: name
+                        }))}
+                        showSearch  // Add this line to enable search functionality
                       />
+
                     </Col>
                   </Row>
                 </div>
@@ -241,7 +245,7 @@ const MigrationPage = () => {
                   >
                     Initiate Migration
                   </Button>
-                  
+
                   <div className="grid grid-cols-2 gap-3">
                     <Button
                       icon={<ReloadOutlined />}
@@ -275,8 +279,8 @@ const MigrationPage = () => {
                       />
                       <div className="text-center">
                         <div className="text-lg font-medium text-gray-800">
-                          Migrating {sourceObject} 
-                          <span className="mx-2">→</span> 
+                          Migrating {sourceObject}
+                          <span className="mx-2">→</span>
                           {targetObject}
                         </div>
                         <p className="text-gray-500 text-sm">
@@ -303,9 +307,8 @@ const MigrationPage = () => {
                       {logs.slice(-3).map((log, index) => (
                         <div
                           key={index}
-                          className={`text-sm p-2 rounded ${
-                            log.includes('❌') ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'
-                          }`}
+                          className={`text-sm p-2 rounded ${log.includes('❌') ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'
+                            }`}
                         >
                           {log}
                         </div>

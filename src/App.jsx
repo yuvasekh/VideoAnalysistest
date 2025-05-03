@@ -10,6 +10,7 @@ import './App.css'
 // import React, { useState } from 'react';
 import axios from 'axios';
 import { FloatButton, Input, Spin } from 'antd';
+import { message } from './api/api';
 // import { MessageOutlined } from '@ant-design/icons';
 // 
 const ChatBot = () => {
@@ -29,13 +30,10 @@ const ChatBot = () => {
     setLoading(true);
 
     try {
-      // Replace with your actual backend API endpoint
-      const res = await axios.post('/api/chatbot', {
-        message: input,
-      });
-
-      const botReply = res.data?.reply || 'Sorry, I didn’t get that.';
-      setMessages(prev => [...prev, { from: 'bot', text: botReply }]);
+  const res=await message(input,messages)
+console.log(res,"res1")
+      // const botReply = res.data?.reply || 'Sorry, I didn’t get that.';
+      setMessages(prev => [...prev, { from: 'bot', text: res }]);
     } catch (err) {
       setMessages(prev => [...prev, { from: 'bot', text: 'Error contacting support service.' }]);
     } finally {

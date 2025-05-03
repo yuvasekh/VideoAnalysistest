@@ -186,9 +186,10 @@ async function fetchFields(objectName) {
 }
 app.put('/addfield', async (req, res) => {
     return new Promise(async (resolve, reject) => {
+        console.log(req.body)
         let objectName = req.body.objectName
-        let ColumnName = req.body.ColumnName
-        let dataType = req.body.dataType
+        let ColumnName = req.body.displayName
+        let dataType = req.body.fieldName
         let data = JSON.stringify({
             "objectDetails": {
                 "label": objectName,
@@ -295,34 +296,49 @@ app.post('/addobject', async (req, res) => {
     })
 })
 app.post('/migrate', async (req, res) => {
-    let targetUrl = req.body.targetUrl
-    let targetAcccesKey = req.body.targetAcccesKey
-    let targetObjectName = req.body.targetObjectName
-    let SourceObjectName = req.body.SourceObjectName
+    const { targetUrl, accessKey: targetAccessKey, targetObject, sourceObject } = req.body;
+  
+    // Basic validation
+    if (!targetUrl || !targetAccessKey || !targetObject || !sourceObject) {
+      return res.status(400).json({ error: 'Missing required fields in request body.' });
+    }
+  
     try {
-        var fields = await fetchFields(SourceObjectName)
-        let temp = []
-        fields?.data[0]?.fields?.map((item, index) => {
-            temp.push({
-                "name": item.fieldName,
-                "label": item.label,
-                "defaultValue": item?.defaultValue || null,
-                "description": item?.description || null,
-                "type": item?.dataType,
-                "group": fields?.data[0]?.objectType,
-                "hidden": false,
-                "required": item?.meta?.dataType
-            })
-        })
+      const fields = await fetchFields(sourceObject);
+      const fieldList = fields?.data?.[0]?.fields || [];
+      const objectType = fields?.data?.[0]?.objectType || 'Unknown';
+  
+      const formattedFields = [];
+  
+      fieldList.forEach(item => {
+        if (item.meta?.fieldGroupType !== 'SYSTEM') {
+          formattedFields.push({
+            name: item.fieldName,
+            label: item.label,
+            defaultValue: item.defaultValue || null,
+            description: item.description || null,
+            type: item.dataType,
+            group: objectType,
+            hidden: false,
+            required: item.meta?.dataType || false
+          });
+        }
+      });
+  
+      console.log('Prepared fields:', formattedFields);
+  
+      const response = await addfield(targetUrl, targetAccessKey, targetObject, formattedFields);
+  
+      return res.status(200).json(response);
+    } catch (error) {
+      console.error('Migration failed:', error);
+      return res.status(500).json({ error: 'Migration failed', details: error.message });
+    }
+  });
+  
+async function addfield(targetUrl, targetAcccesKey, objectName, ColumnNames) {
 
-        console.log(temp[0])
-        var response = await addfield(targetUrl, targetAcccesKey, targetObjectName, temp)
-    }
-    catch (error) {
-        res.send(error)
-    }
-})
-async function addfield(targetUrl, targetAcccesKey, objectName, temp) {
+
     return new Promise(async (resolve, reject) => {
         let data = JSON.stringify({
             "objectDetails": {
@@ -358,12 +374,12 @@ async function addfield(targetUrl, targetAcccesKey, objectName, temp) {
         axios.request(config)
             .then((response) => {
                 console.log(JSON.stringify(response.data));
-                res.send(response.data)
-                return response.data
+                // res.send(response.data)
+                resolve(response.data)
             })
             .catch((error) => {
                 console.log(error);
-                res.send(error)
+            reject(error)
             });
 
 
@@ -398,6 +414,16 @@ async function readToken() {
 
 
 }
+app.post('/message', async (req, res) => {
+    console.log(req.body)
+    let message = req.body.message
+    let messages = req.body.messages
+    // let fieldName = req.body.fieldName
+    let response=await startAgent(message,messages)
+    console.log(message)
+ res.send(response)
+  
+})
 app.listen(port, () => {
     console.log(`Server running on http://localhost:${port}`);
 });
@@ -487,77 +513,151 @@ async function analysis(question, base64Data) {
 
 
 }
-async function functioncalling(params) {
 
-    let data = JSON.stringify({
-        "contents": [
-            {
-                "role": "user",
-                "parts": [
-                    {
-                        "text": "Schedule a meeting with Bob and Alice for 03/27/2025 at 10:00 AM about the Q3 planning."
-                    }
+// async function functioncalling(input) {
+
+//     let data = JSON.stringify({
+//         "contents": [
+//             {
+//                 "role": "user",
+//                 "parts": [
+//                     {
+//                         "text": "Schedule a meeting with Bob and Alice for 03/27/2025 at 10:00 AM about the Q3 planning."
+//                     }
+//                 ]
+//             }
+//         ],
+//         "tools": [
+//             {
+//                 "functionDeclarations": [
+//                     {
+//                         "name": "schedule_meeting",
+//                         "description": "Schedules a meeting with specified attendees at a given time and date.",
+//                         "parameters": {
+//                             "type": "object",
+//                             "properties": {
+//                                 "attendees": {
+//                                     "type": "array",
+//                                     "items": {
+//                                         "type": "string"
+//                                     },
+//                                     "description": "List of people attending the meeting."
+//                                 },
+//                                 "date": {
+//                                     "type": "string",
+//                                     "description": "Date of the meeting (e.g., 2024-07-29)"
+//                                 },
+//                                 "time": {
+//                                     "type": "string",
+//                                     "description": "Time of the meeting (e.g., 15:00)"
+//                                 },
+//                                 "topic": {
+//                                     "type": "string",
+//                                     "description": "The subject or topic of the meeting."
+//                                 }
+//                             },
+//                             "required": [
+//                                 "attendees",
+//                                 "date",
+//                                 "time",
+//                                 "topic"
+//                             ]
+//                         }
+//                     }
+//                 ]
+//             }
+//         ]
+//     });
+
+//     let config = {
+//         method: 'post',
+//         maxBodyLength: Infinity,
+//         url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AIzaSyBYR6gyhmJ5nqmEGUdit8Z3X1TXtQZFg6g',
+//         headers: {
+//             'Content-Type': 'application/json'
+//         },
+//         data: data
+//     };
+
+//     axios.request(config)
+//         .then((response) => {
+//             console.log(JSON.stringify(response.data));
+//         })
+//         .catch((error) => {
+//             console.log(error);
+//         });
+
+// }
+
+async function startAgent(input,messages) {
+
+    return new Promise(async(resolve,reject)=>
+    {
+        const data = {
+            contents: [
+              {
+                role: "user",
+                parts: [
+                  {
+                    text: `Let's create a new object. Please collect the object name, field name, and data type from me  I 'll  user and bot previous messages ${messages}. You need to respond accordingly`
+                  }
                 ]
-            }
-        ],
-        "tools": [
-            {
-                "functionDeclarations": [
-                    {
-                        "name": "schedule_meeting",
-                        "description": "Schedules a meeting with specified attendees at a given time and date.",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "attendees": {
-                                    "type": "array",
-                                    "items": {
-                                        "type": "string"
-                                    },
-                                    "description": "List of people attending the meeting."
-                                },
-                                "date": {
-                                    "type": "string",
-                                    "description": "Date of the meeting (e.g., 2024-07-29)"
-                                },
-                                "time": {
-                                    "type": "string",
-                                    "description": "Time of the meeting (e.g., 15:00)"
-                                },
-                                "topic": {
-                                    "type": "string",
-                                    "description": "The subject or topic of the meeting."
-                                }
-                            },
-                            "required": [
-                                "attendees",
-                                "date",
-                                "time",
-                                "topic"
-                            ]
+              }
+            ],
+            tools: [
+              {
+                functionDeclarations: [
+                  {
+                    name: "create_object_with_field",
+                    description: "Creates an object by collecting object name, field name, and data type from the user.",
+                    parameters: {
+                      type: "object",
+                      properties: {
+                        objectName: {
+                          type: "string",
+                          description: "The name of the object to create."
+                        },
+                        fieldName: {
+                          type: "string",
+                          description: "The field to add to the object."
+                        },
+                        dataType: {
+                          type: "string",
+                          description: "The data type of the field.",
+                          enum: ["string", "number", "boolean", "date"]
                         }
+                      },
+                      required: ["objectName", "fieldName", "dataType"]
                     }
+                  }
                 ]
+              }
+            ],
+            toolConfig: {
+              functionCallingConfig: {
+                mode: "AUTO"
+              }
             }
-        ]
-    });
-
-    let config = {
-        method: 'post',
-        maxBodyLength: Infinity,
-        url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AIzaSyBYR6gyhmJ5nqmEGUdit8Z3X1TXtQZFg6g',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        data: data
-    };
-
-    axios.request(config)
-        .then((response) => {
-            console.log(JSON.stringify(response.data));
-        })
-        .catch((error) => {
-            console.log(error);
-        });
+          };
+        
+          const config = {
+            method: "post",
+            url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AIzaSyBYR6gyhmJ5nqmEGUdit8Z3X1TXtQZFg6g',
+                headers: {
+              "Content-Type": "application/json"
+            },
+            data: JSON.stringify(data)
+          };
+        
+          try {
+            const response = await axios.request(config);
+            console.log(response.data.candidates[0].content.parts[0])
+            resolve(response.data.candidates[0].content?.parts[0]?.text)
+            // console.log(JSON.stringify(response.data.candidates[0], null, 2));
+          } catch (error) {
+            console.error("Error calling Gemini agent:", error);
+            reject(error)
+          }
+    })
 
 }
