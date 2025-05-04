@@ -13,10 +13,14 @@ import { FloatButton, Input, Spin } from 'antd';
 import { message } from './api/api';
 // import { MessageOutlined } from '@ant-design/icons';
 // 
+// import React, { useState } from 'react';
+// import { FloatButton, Input, Spin } from 'antd';
+// import { MessageOutlined } from '@ant-design/icons';
+
+// Example message() function signature: message(userInput, chatHistory)
 const ChatBot = () => {
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState([
-    { from: 'bot', text: 'Ask me about field configurations, migrations, or system help.' }
+  const [chatHistory, setChatHistory] = useState([
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -24,18 +28,37 @@ const ChatBot = () => {
   const sendMessage = async () => {
     if (!input.trim()) return;
 
-    const userMessage = { from: 'user', text: input };
-    setMessages(prev => [...prev, userMessage]);
+    const userEntry = {
+      role: 'user',
+      parts: [{ text: input }]
+    };
+
+    setChatHistory(prev => [...prev, userEntry]);
     setInput('');
     setLoading(true);
 
     try {
-  const res=await message(input,messages)
-console.log(res,"res1")
-      // const botReply = res.data?.reply || 'Sorry, I didn’t get that.';
-      setMessages(prev => [...prev, { from: 'bot', text: res }]);
+      const res = await message(input, [...chatHistory, userEntry]);
+      console.log(res, 'res1');
+
+      const botEntry = {
+        role: 'model',
+        parts: [
+          {
+            text: res
+          }
+        ]
+      };
+
+      setChatHistory(prev => [...prev, botEntry]);
     } catch (err) {
-      setMessages(prev => [...prev, { from: 'bot', text: 'Error contacting support service.' }]);
+      setChatHistory(prev => [
+        ...prev,
+        {
+          role: 'model',
+          parts: [{ text: 'Error contacting support service.' }]
+        }
+      ]);
     } finally {
       setLoading(false);
     }
@@ -53,21 +76,27 @@ console.log(res,"res1")
       >
         <div className="chat-window bg-white shadow-lg rounded-lg w-80 h-[30rem] flex flex-col">
           <div className="p-4 border-b border-gray-200">
-            <h3 className="font-semibold"> AI Support Assistant</h3>
+            <h3 className="font-semibold">AI Support Assistant</h3>
           </div>
           <div className="p-4 flex-1 overflow-y-auto space-y-2 text-sm">
-            {messages.map((msg, idx) => (
-              <div
-                key={idx}
-                className={`p-2 rounded-lg ${
-                  msg.from === 'user' ? 'bg-blue-100 text-right' : 'bg-gray-100 text-left'
-                }`}
-              >
-                {msg.text}
+            {chatHistory.map((msg, idx) => (
+              <div key={idx}>
+                {msg.parts.map((part, pIdx) => (
+                  <div
+                    key={pIdx}
+                    className={`p-2 rounded-lg my-1 ${
+                      msg.role === 'user' ? 'bg-blue-100 text-right' : 'bg-gray-100 text-left'
+                    }`}
+                  >
+                    {part.text}
+                  </div>
+                ))}
               </div>
             ))}
             {loading && (
-              <div className="text-gray-400 italic text-sm text-left"><Spin size="small" /> Thinking...</div>
+              <div className="text-gray-400 italic text-sm text-left">
+                <Spin size="small" /> Thinking...
+              </div>
             )}
           </div>
           <div className="p-4 border-t border-gray-200">
@@ -89,6 +118,8 @@ console.log(res,"res1")
     </div>
   );
 };
+
+
 
 
 

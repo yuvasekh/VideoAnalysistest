@@ -6,6 +6,7 @@ var bodyParser = require('body-parser')
 const axios = require('axios');
 const { data } = require("autoprefixer");
 const { rejects } = require("assert");
+const { measureMemory } = require("vm");
 const app = express();
 const port = 5000;
 app.use(cors());
@@ -337,7 +338,10 @@ app.post('/migrate', async (req, res) => {
   });
   
 async function addfield(targetUrl, targetAcccesKey, objectName, ColumnNames) {
-
+if(!targetUrl)
+{
+    targetUrl="https://demo-wigmore.gainsightcloud.com"
+}
 
     return new Promise(async (resolve, reject) => {
         let data = JSON.stringify({
@@ -415,13 +419,42 @@ async function readToken() {
 
 }
 app.post('/message', async (req, res) => {
-    console.log(req.body)
+    // console.log(req.body)
     let message = req.body.message
     let messages = req.body.messages
     // let fieldName = req.body.fieldName
     let response=await startAgent(message,messages)
-    console.log(message)
- res.send(response)
+    console.log(response,"turn")
+    if(response.hasOwnProperty('functionCall'))
+    {
+        console.log(response?.functionCall.args,"yuva")
+       var info=response.functionCall.args
+let columns=[{
+       name: info.fieldName,
+       label: info.fieldName,
+       defaultValue:  null,
+       description:  null,
+       type: info.dataType,
+       group: "CUSTOM",
+       hidden: false,
+       required:  false
+     }]
+     console.dir(null,null,response.functionCall.args.objectName,columns,"payload")
+     try
+     {
+        var result=await addfield(null,null,response.functionCall.args.objectName,columns)
+        res.send("sucessfully created")
+     }
+     catch(err)
+     {
+        console.log(err.message)
+        res.send("Failed creation")
+     }
+    }
+    else
+    {
+ res.send(response.text)
+    }
   
 })
 app.listen(port, () => {
@@ -590,26 +623,18 @@ async function analysis(question, base64Data) {
 // }
 
 async function startAgent(input,messages) {
+    console.dir(messages,"yuva")
 
     return new Promise(async(resolve,reject)=>
     {
         const data = {
-            contents: [
-              {
-                role: "user",
-                parts: [
-                  {
-                    text: `Let's create a new object. Please collect the object name, field name, and data type from me  I 'll  user and bot previous messages ${messages}. You need to respond accordingly`
-                  }
-                ]
-              }
-            ],
+            contents: messages,
             tools: [
               {
                 functionDeclarations: [
                   {
                     name: "create_object_with_field",
-                    description: "Creates an object by collecting object name, field name, and data type from the user.",
+                    description: "Aks the user for Creates an field by collecting object name, field name, and data type from the user.",
                     parameters: {
                       type: "object",
                       properties: {
@@ -652,7 +677,7 @@ async function startAgent(input,messages) {
           try {
             const response = await axios.request(config);
             console.log(response.data.candidates[0].content.parts[0])
-            resolve(response.data.candidates[0].content?.parts[0]?.text)
+            resolve(response.data.candidates[0].content?.parts[0])
             // console.log(JSON.stringify(response.data.candidates[0], null, 2));
           } catch (error) {
             console.error("Error calling Gemini agent:", error);
